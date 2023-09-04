@@ -1,13 +1,16 @@
 package com.mdc.mcat.server;
 
 import com.mdc.mcat.handler.HttpConnector;
-import com.mdc.mcat.handler.SimpleHandler;
+import com.mdc.mcat.servlet.DefaultServlet;
+import com.mdc.mcat.servlet.HelloServlet;
+import com.mdc.mcat.servlet.IndexServlet;
 import com.sun.net.httpserver.HttpExchange;
 import com.sun.net.httpserver.HttpHandler;
 import com.sun.net.httpserver.HttpServer;
 
 import java.io.IOException;
 import java.net.InetSocketAddress;
+import java.util.List;
 
 public class SimpleServer implements HttpHandler, AutoCloseable {
     public static void main(String[] args) {
@@ -39,6 +42,7 @@ public class SimpleServer implements HttpHandler, AutoCloseable {
         this.httpServer = HttpServer.create(inetSocket, 0);
         this.httpServer.createContext("/", this);
         this.httpConnector = new HttpConnector();
+        ((HttpConnector) this.httpConnector).initialize(List.of(HelloServlet.class, IndexServlet.class, DefaultServlet.class));
         this.httpServer.start();
     }
 

@@ -1,4 +1,4 @@
-package com.mdc.mcat.entity.response;
+package com.mdc.mcat.engine.entity.response;
 
 import com.mdc.mcat.adapter.HttpExchangeResponse;
 import jakarta.servlet.ServletOutputStream;
@@ -8,6 +8,7 @@ import jakarta.servlet.http.HttpServletResponse;
 import java.io.IOException;
 import java.io.PrintWriter;
 import java.nio.charset.Charset;
+import java.nio.charset.StandardCharsets;
 import java.util.Collection;
 import java.util.Locale;
 
@@ -40,12 +41,15 @@ public class HttpServletResponseImpl implements HttpServletResponse {
 
     @Override
     public void sendError(int sc, String msg) throws IOException {
-
+        exchangeResponse.sendResponseHeaders(sc, 0);
+        PrintWriter pw = new PrintWriter(exchangeResponse.getResponseBody(), true, StandardCharsets.UTF_8);
+        pw.write("<h1>" + sc + " " + msg + "</h1>");
+        pw.close();
     }
 
     @Override
     public void sendError(int sc) throws IOException {
-
+        exchangeResponse.sendResponseHeaders(sc, 0);
     }
 
     @Override
@@ -126,7 +130,7 @@ public class HttpServletResponseImpl implements HttpServletResponse {
     @Override
     public PrintWriter getWriter() throws IOException {
         exchangeResponse.sendResponseHeaders(200, 0);
-        return new PrintWriter(exchangeResponse.getResponseBody(), true);
+        return new PrintWriter(exchangeResponse.getResponseBody(), true, StandardCharsets.UTF_8);
     }
 
     @Override

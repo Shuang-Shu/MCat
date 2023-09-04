@@ -1,4 +1,4 @@
-package com.mdc.mcat.entity.request;
+package com.mdc.mcat.engine.entity.request;
 
 import com.mdc.mcat.adapter.HttpExchangeRequest;
 import jakarta.servlet.*;
@@ -7,6 +7,8 @@ import jakarta.servlet.http.*;
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.UnsupportedEncodingException;
+import java.net.URLDecoder;
+import java.nio.charset.StandardCharsets;
 import java.security.Principal;
 import java.util.*;
 
@@ -225,6 +227,7 @@ public class HttpServletRequestImpl implements HttpServletRequest {
     }
 
     private void parseUri(String uriString) {
+        uriString = URLDecoder.decode(uriString, StandardCharsets.UTF_8);
         this.paramMap = new HashMap<>();
         String paramString = uriString.substring(uriString.lastIndexOf("?") + 1);
         String[] params = paramString.split("&");
