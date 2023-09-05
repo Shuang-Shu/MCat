@@ -234,7 +234,9 @@ public class HttpServletRequestImpl implements HttpServletRequest {
         Arrays.stream(params).forEach(
                 p -> {
                     String[] kv = p.split("=");
-                    paramMap.put(kv[0], kv[1]);
+                    if (kv.length == 2) {
+                        paramMap.put(kv[0], kv[1]);
+                    }
                 }
         );
     }

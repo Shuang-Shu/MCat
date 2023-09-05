@@ -1,8 +1,7 @@
 package com.mdc.mcat.engine.context;
 
 import com.mdc.mcat.anno.WebServlet;
-import com.mdc.mcat.engine.config.ServletConfigImpl;
-import com.mdc.mcat.engine.mapping.ServletMapping;
+import com.mdc.mcat.engine.mapping.impl.ServletMapping;
 import com.mdc.mcat.utils.AnnoUtils;
 import jakarta.servlet.*;
 import jakarta.servlet.descriptor.JspConfigDescriptor;
@@ -13,23 +12,95 @@ import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.io.InputStream;
-import java.io.PrintWriter;
+import java.lang.reflect.Constructor;
 import java.lang.reflect.InvocationTargetException;
 import java.net.MalformedURLException;
 import java.net.URL;
-import java.nio.charset.StandardCharsets;
 import java.util.*;
 
 public class ServletContextImpl implements ServletContext {
 
+    static class DefaultServlet implements Servlet {
+        public final static DefaultServlet DEFAULT_SERVLET = new DefaultServlet();
+
+        @Override
+        public void init(ServletConfig config) throws ServletException {
+
+        }
+
+        @Override
+        public ServletConfig getServletConfig() {
+            return null;
+        }
+
+        @Override
+        public void service(ServletRequest req, ServletResponse res) throws ServletException, IOException {
+            ((HttpServletResponse) res).sendError(404, "Not Found");
+        }
+
+        @Override
+        public String getServletInfo() {
+            return null;
+        }
+
+        @Override
+        public void destroy() {
+
+        }
+    }
+
     private final static Logger logger = LoggerFactory.getLogger(ServletContextImpl.class);
-    private Map<String, ServletRegistrationImpl> registrationMap = new HashMap<>();
-    private List<ServletMapping> servletMappingList;
-    private String contextPath;
-    Map<String, Object> attributes = new HashMap<>();
+    private final Map<String, ServletRegistration.Dynamic> registrationMap = new HashMap<>();
+    private final Map<String, Servlet> nameToServletMap = new HashMap<>();
+    private final List<ServletMapping> servletMappingList = new ArrayList<>();
+    private final String contextPath;
+    private Servlet defaultServlet = DefaultServlet.DEFAULT_SERVLET;
+    private boolean isInitialized = false;
+    private Map<String, Object> contextParams = new HashMap<>();
+
+    public ServletContextImpl(String contextPath) {
+        this.contextPath = contextPath;
+    }
+
+    public void initialize(List<Class<? extends Servlet>> servletClasses) {
+        if (isInitialized) {
+            throw new IllegalStateException("this servlet context has been initialized");
+        }
+        // 1 注册所有Servlet（同时实例化）
+        for (var clazz : servletClasses) {
+            WebServlet webServlet = clazz.getAnnotation(WebServlet.class);
+            if (webServlet != null) {
+                var servletRegistration = (ServletRegistrationImpl) addServlet(webServlet.name(), clazz);
+                registrationMap.put(webServlet.name(), servletRegistration);
+                var initParams = AnnoUtils.getInitAttributes(clazz);
+                servletRegistration.setInitParameters(initParams);
+            }
+        }
+        // 2 使用ServletConfig所有Servlet
+        for (String name : registrationMap.keySet()) {
+            var registration = ((ServletRegistrationImpl) registrationMap.get(name));
+            try {
+                registration.getServletMapping().getServlet().init(
+                        registration.getServletConfig()
+                );
+            } catch (ServletException e) {
+                logger.error("ServletContext: {} initializing failed", this);
+            }
+            nameToServletMap.put(registration.getName(), registration.getServletMapping().getServlet());
+            try {
+            } catch (Exception e) {
+                throw new RuntimeException(e);
+            }
+        }
+        this.isInitialized = true;
+    }
 
     public void process(HttpServletRequest req, HttpServletResponse resp) throws IOException, ServletException {
         String uri = req.getRequestURI();
+        int indexOfQ = uri.indexOf("?");
+        if (indexOfQ != -1) {
+            uri = uri.substring(0, uri.indexOf("?"));
+        }
         Servlet matchServlet = null;
         for (ServletMapping servletMapping : servletMappingList) {
             if (servletMapping.match(uri)) {
@@ -38,40 +109,10 @@ public class ServletContextImpl implements ServletContext {
             }
         }
         if (matchServlet == null) {
-            PrintWriter pw = new PrintWriter(resp.getOutputStream(), true, StandardCharsets.UTF_8);
-            pw.write("<h1>404 Not Found</h1><p>No mapping for URL: " + uri + "</p>");
-            pw.close();
+            defaultServlet.service(req, resp);
         } else {
             matchServlet.service(req, resp);
         }
-    }
-
-    public void initialize(List<Class<?>> servletClasses) {
-        this.servletMappingList = servletClasses.stream().map(
-                this::buildServletMappingFrom
-        ).toList();
-    }
-
-    private ServletMapping buildServletMappingFrom(Class<?> clazz) {
-        Map<String, String> attributes = AnnoUtils.getInitAttributes(clazz);
-        WebServlet webServlet = clazz.getAnnotation(WebServlet.class);
-        String uri = webServlet.value()[0]; // only use the first uri
-        var servletName = webServlet.name();
-        Servlet servlet = null;
-        try {
-            var constructor = clazz.getConstructor();
-            servlet = (Servlet) constructor.newInstance();
-        } catch (NoSuchMethodException | InstantiationException | IllegalAccessException |
-                 InvocationTargetException e) {
-            throw new RuntimeException(e);
-        }
-        var servletConfig = ServletConfigImpl.builder().servletContext(this).servletName(servletName).attributes(attributes).build();
-        try {
-            servlet.init(servletConfig);
-        } catch (ServletException e) {
-            throw new RuntimeException(e);
-        }
-        return new ServletMapping(servlet, uri);
     }
 
     @Override
@@ -171,22 +212,22 @@ public class ServletContextImpl implements ServletContext {
 
     @Override
     public Object getAttribute(String name) {
-        return attributes.get(name);
+        return contextParams.get(name);
     }
 
     @Override
     public Enumeration<String> getAttributeNames() {
-        return Collections.enumeration(attributes.keySet());
+        return Collections.enumeration(contextParams.keySet());
     }
 
     @Override
     public void setAttribute(String name, Object object) {
-        attributes.put(name, object);
+        contextParams.put(name, (String) object);
     }
 
     @Override
     public void removeAttribute(String name) {
-        attributes.remove(name);
+        contextParams.remove(name);
     }
 
     @Override
@@ -194,14 +235,14 @@ public class ServletContextImpl implements ServletContext {
         return null;
     }
 
+
     @Override
+    @SuppressWarnings("unchecked")
     public ServletRegistration.Dynamic addServlet(String servletName, String className) {
-        ServletRegistrationImpl result = null;
+        ServletRegistration.Dynamic result = null;
         try {
             Class<?> servletClazz = Class.forName(className);
-            var servletMapping = buildServletMappingFrom(servletClazz);
-            servletMappingList.add(servletMapping);
-            result = ServletRegistrationImpl.builder().servlet(servletMapping.getServlet()).build();
+            result = addServlet(servletName, (Class<? extends Servlet>) servletClazz);
         } catch (ClassNotFoundException e) {
             throw new RuntimeException(e);
         }
@@ -209,13 +250,39 @@ public class ServletContextImpl implements ServletContext {
     }
 
     @Override
-    public ServletRegistration.Dynamic addServlet(String servletName, Servlet servlet) {
-        return null;
+    public ServletRegistration.Dynamic addServlet(String name, Class<? extends Servlet> servletClass) {
+        Servlet servlet = null;
+        try {
+            Constructor<?> constructor = servletClass.getConstructor();
+            servlet = (Servlet) constructor.newInstance();
+        } catch (InvocationTargetException | NoSuchMethodException | InstantiationException |
+                 IllegalAccessException e) {
+            throw new RuntimeException(e);
+        }
+        return addServlet(name, servlet);
     }
 
     @Override
-    public ServletRegistration.Dynamic addServlet(String servletName, Class<? extends Servlet> servletClass) {
-        return null;
+    public ServletRegistration.Dynamic addServlet(String servletName, Servlet servlet) {
+        var webServlet = servlet.getClass().getAnnotation(WebServlet.class);
+        var registration = ServletRegistrationImpl.builder().name(servletName).context(this).servletClass(servlet.getClass()).servletMapping(new ServletMapping()).build();
+        registration.getServletParams().putAll(AnnoUtils.getInitAttributes(
+                servlet.getClass()
+        ));
+        for (String url : webServlet.value()) {
+            registration.getServletMapping().addMapping(url);
+        }
+        registration.getServletMapping().setServlet(servlet);
+        if (registration.getServletMapping().getIsDefault()) {
+            if (defaultServlet == DefaultServlet.DEFAULT_SERVLET) {
+                defaultServlet = registration.getServletMapping().getServlet();
+            } else {
+                throw new IllegalStateException("Only one default servlet can be used");
+            }
+        }
+        servletMappingList.add(registration.getServletMapping());
+        Collections.sort(this.servletMappingList);
+        return registration;
     }
 
     @Override

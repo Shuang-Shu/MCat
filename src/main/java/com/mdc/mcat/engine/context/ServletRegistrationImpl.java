@@ -1,24 +1,25 @@
 package com.mdc.mcat.engine.context;
 
-import jakarta.servlet.MultipartConfigElement;
-import jakarta.servlet.Servlet;
-import jakarta.servlet.ServletRegistration;
-import jakarta.servlet.ServletSecurityElement;
+import com.mdc.mcat.engine.mapping.impl.ServletMapping;
+import jakarta.servlet.*;
 import lombok.Builder;
 import lombok.Data;
 
-import java.util.Collection;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
 
 @Data
 @Builder
 public class ServletRegistrationImpl implements ServletRegistration.Dynamic {
-    private Servlet servlet;
+    private String name;
+    private ServletContext context;
+    private Class<? extends Servlet> servletClass;
+    private ServletMapping servletMapping;
+    private int loadOnStartup;
+    private final Map<String, String> servletParams = new HashMap<>();
 
     @Override
     public void setLoadOnStartup(int loadOnStartup) {
-        throw new UnsupportedOperationException();
+        this.loadOnStartup = loadOnStartup;
     }
 
     @Override
@@ -43,12 +44,18 @@ public class ServletRegistrationImpl implements ServletRegistration.Dynamic {
 
     @Override
     public Set<String> addMapping(String... urlPatterns) {
-        throw new UnsupportedOperationException();
+        Set<String> confict = new HashSet<>();
+        for (String p : urlPatterns) {
+            if (!servletMapping.addMapping(p)) {
+                confict.add(p);
+            }
+        }
+        return confict;
     }
 
     @Override
     public Collection<String> getMappings() {
-        throw new UnsupportedOperationException();
+        return servletMapping.getMappings();
     }
 
     @Override
@@ -58,12 +65,12 @@ public class ServletRegistrationImpl implements ServletRegistration.Dynamic {
 
     @Override
     public String getName() {
-        return null;
+        return name;
     }
 
     @Override
     public String getClassName() {
-        return null;
+        return servletClass.getClass().getName();
     }
 
     @Override
@@ -73,16 +80,48 @@ public class ServletRegistrationImpl implements ServletRegistration.Dynamic {
 
     @Override
     public String getInitParameter(String name) {
-        return null;
+        return servletParams.get(name);
     }
 
     @Override
     public Set<String> setInitParameters(Map<String, String> initParameters) {
-        return null;
+        Set<String> confict = new HashSet<>();
+        for (String key : initParameters.keySet()) {
+            if (this.servletParams.containsKey(key)) {
+                confict.add(key);
+            } else {
+                initParameters.put(key, initParameters.get(key));
+            }
+        }
+        return confict;
     }
 
     @Override
     public Map<String, String> getInitParameters() {
-        return null;
+        return servletParams;
+    }
+
+    public ServletConfig getServletConfig() {
+        return new ServletConfig() {
+            @Override
+            public String getServletName() {
+                return ServletRegistrationImpl.this.name;
+            }
+
+            @Override
+            public ServletContext getServletContext() {
+                return ServletRegistrationImpl.this.context;
+            }
+
+            @Override
+            public String getInitParameter(String name) {
+                return ServletRegistrationImpl.this.getInitParameter(name);
+            }
+
+            @Override
+            public Enumeration<String> getInitParameterNames() {
+                return Collections.enumeration(ServletRegistrationImpl.this.getInitParameters().keySet());
+            }
+        };
     }
 }

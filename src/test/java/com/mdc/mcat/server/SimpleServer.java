@@ -1,7 +1,6 @@
 package com.mdc.mcat.server;
 
-import com.mdc.mcat.handler.HttpConnector;
-import com.mdc.mcat.servlet.DefaultServlet;
+import com.mdc.mcat.engine.connect.HttpConnector;
 import com.mdc.mcat.servlet.HelloServlet;
 import com.mdc.mcat.servlet.IndexServlet;
 import com.sun.net.httpserver.HttpExchange;
@@ -42,7 +41,6 @@ public class SimpleServer implements HttpHandler, AutoCloseable {
         this.httpServer = HttpServer.create(inetSocket, 0);
         this.httpServer.createContext("/", this);
         this.httpConnector = new HttpConnector();
-        ((HttpConnector) this.httpConnector).initialize(List.of(HelloServlet.class, IndexServlet.class, DefaultServlet.class));
         this.httpServer.start();
     }
 
