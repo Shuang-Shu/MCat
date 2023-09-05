@@ -227,7 +227,6 @@ public class HttpServletRequestImpl implements HttpServletRequest {
     }
 
     private void parseUri(String uriString) {
-        uriString = URLDecoder.decode(uriString, StandardCharsets.UTF_8);
         this.paramMap = new HashMap<>();
         String paramString = uriString.substring(uriString.lastIndexOf("?") + 1);
         String[] params = paramString.split("&");

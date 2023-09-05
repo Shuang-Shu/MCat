@@ -1,15 +1,14 @@
 package com.mdc.mcat.servlet;
 
-import com.mdc.mcat.anno.WebServlet;
 import jakarta.servlet.*;
+import jakarta.servlet.annotation.WebServlet;
 
 import java.io.IOException;
 import java.io.PrintWriter;
-import java.nio.charset.StandardCharsets;
 
 @WebServlet(
-        name = "hello",
-        value = "/hello"
+        value = "/hello",
+        name = "helloServlet"
 )
 public class HelloServlet implements Servlet {
     private ServletConfig config;

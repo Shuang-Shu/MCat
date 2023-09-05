@@ -10,10 +10,12 @@ import jakarta.servlet.http.HttpServletResponse;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
+import lombok.EqualsAndHashCode;
 
 import java.io.IOException;
 import java.util.regex.Pattern;
 
+@EqualsAndHashCode(callSuper = true)
 @Data
 public class ServletMapping extends AbstractMapping {
     private Servlet servlet;
@@ -29,14 +31,5 @@ public class ServletMapping extends AbstractMapping {
 
     public void process(HttpServletRequest req, HttpServletResponse resp) throws ServletException, IOException {
         servlet.service(req, resp);
-    }
-
-    public boolean addMapping(String url) {
-        if (urlStrs.contains(url)) {
-            return false;
-        }
-        urlStrs.add(url);
-        patterns.add(buildPattern(url));
-        return true;
     }
 }

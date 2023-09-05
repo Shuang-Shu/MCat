@@ -26,29 +26,24 @@ public abstract class AbstractMapping implements Comparable<AbstractMapping> {
 
     protected Pattern buildPattern(String patternUrl) {
         // 满足tomcat的url匹配规则
-        if (!"/".equals(patternUrl)) {
-            // 1 精确路径匹配（不包含*符号）
-            if (!patternUrl.contains("*")) {
-                priority = patternUrl.length();
-                return Pattern.compile(patternUrl);
-            } else {
-                // 通配符匹配
-                StringBuilder sb = new StringBuilder();
-                for (char ch : patternUrl.toCharArray()) {
-                    if (ch == '*') {
-                        sb.append(".*");
-                    } else if (ch >= 'a' && ch <= 'z' || ch >= 'A' && ch <= 'Z' || ch >= '0' && ch <= '9') {
-                        sb.append(ch);
-                    } else {
-                        sb.append('\\').append(ch);
-                    }
-                }
-                priority = sb.toString().length();
-                return Pattern.compile(sb.toString());
-            }
+        // 1 精确路径匹配（不包含*符号）
+        if (!patternUrl.contains("*")) {
+            priority = patternUrl.length();
+            return Pattern.compile(patternUrl);
         } else {
-            priority = -1;
-            return Pattern.compile("/.*");
+            // 通配符匹配
+            StringBuilder sb = new StringBuilder();
+            for (char ch : patternUrl.toCharArray()) {
+                if (ch == '*') {
+                    sb.append(".*");
+                } else if (ch >= 'a' && ch <= 'z' || ch >= 'A' && ch <= 'Z' || ch >= '0' && ch <= '9') {
+                    sb.append(ch);
+                } else {
+                    sb.append('\\').append(ch);
+                }
+            }
+            priority = sb.toString().length();
+            return Pattern.compile(sb.toString());
         }
     }
 
@@ -71,5 +66,14 @@ public abstract class AbstractMapping implements Comparable<AbstractMapping> {
 
     public boolean getIsDefault() {
         return isDefault;
+    }
+
+    public boolean addMapping(String url) {
+        if (urlStrs.contains(url)) {
+            return false;
+        }
+        urlStrs.add(url);
+        patterns.add(buildPattern(url));
+        return true;
     }
 }

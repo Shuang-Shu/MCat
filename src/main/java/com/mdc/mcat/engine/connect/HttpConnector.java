@@ -69,7 +69,7 @@ public class HttpConnector implements HttpHandler, AutoCloseable {
         startThread.start();
     }
 
-    public void initialize(List<Class<? extends Servlet>> servletClasses) {
+    public void initialize(List<Class<?>> servletClasses) throws ServletException {
         servletContext = new ServletContextImpl(this.contextPath);
         servletContext.initialize(servletClasses);
     }
