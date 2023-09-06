@@ -1,24 +1,31 @@
 package com.mdc.mcat.engine.entity.request;
 
 import com.mdc.mcat.adapter.HttpExchangeRequest;
+import com.mdc.mcat.engine.context.ServletContextImpl;
+import com.mdc.mcat.engine.session.impl.HttpSessionImpl;
 import jakarta.servlet.*;
 import jakarta.servlet.http.*;
 
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.UnsupportedEncodingException;
-import java.net.URLDecoder;
-import java.nio.charset.StandardCharsets;
 import java.security.Principal;
 import java.util.*;
 
 public class HttpServletRequestImpl implements HttpServletRequest {
+    public final static String JSESSIONID_NAME = "JSESSIONID";
+
     private HttpExchangeRequest exchangeRequest;
 
     private Map<String, String> paramMap;
 
-    public HttpServletRequestImpl(HttpExchangeRequest req) {
+    private ServletContextImpl servletContext;
+    private HttpServletResponse httpServletResponse;
+
+    public HttpServletRequestImpl(HttpExchangeRequest req, HttpServletResponse resp, ServletContextImpl servletContext) {
         this.exchangeRequest = req;
+        this.servletContext = servletContext;
+        this.httpServletResponse = resp;
     }
 
     @Override
@@ -28,7 +35,7 @@ public class HttpServletRequestImpl implements HttpServletRequest {
 
     @Override
     public Cookie[] getCookies() {
-        return new Cookie[0];
+        return exchangeRequest.getCookies();
     }
 
     @Override
@@ -118,12 +125,34 @@ public class HttpServletRequestImpl implements HttpServletRequest {
 
     @Override
     public HttpSession getSession(boolean create) {
-        return null;
+        var cookies = getCookies();
+        HttpSession session = null;
+        for (var cookie : cookies) {
+            if (JSESSIONID_NAME.equals(cookie.getName())) {
+                var sessionId = cookie.getValue();
+                session = servletContext.getSessionManager().getSession(sessionId);
+            }
+        }
+        if (session != null) {
+            // 更新最新访问时间
+            ((HttpSessionImpl) session).setLastAccessedTime(System.currentTimeMillis());
+            httpServletResponse.addCookie(new Cookie(JSESSIONID_NAME, session.getId()));
+            return session;
+        } else {
+            if (create) {
+                var sessionId = servletContext.getSessionManager().createSession();
+                session = servletContext.getSessionManager().getSession(sessionId);
+                httpServletResponse.addCookie(new Cookie(JSESSIONID_NAME, sessionId));
+                return session;
+            } else {
+                return null;
+            }
+        }
     }
 
     @Override
     public HttpSession getSession() {
-        return null;
+        return getSession(false);
     }
 
     @Override
@@ -342,7 +371,7 @@ public class HttpServletRequestImpl implements HttpServletRequest {
 
     @Override
     public ServletContext getServletContext() {
-        return null;
+        return this.servletContext;
     }
 
     @Override

@@ -1,16 +1,24 @@
 package com.mdc.mcat.engine.context;
 
+import com.mdc.mcat.engine.entity.request.HttpServletRequestImpl;
+import com.mdc.mcat.engine.entity.response.HttpServletResponseImpl;
 import com.mdc.mcat.engine.filter.http.FilterRegistrationImpl;
 import com.mdc.mcat.engine.filter.http.impl.ListHttpFilterChain;
 import com.mdc.mcat.engine.mapping.impl.FilterMapping;
 import com.mdc.mcat.engine.mapping.impl.ServletMapping;
+import com.mdc.mcat.engine.session.AbstractSessionManager;
+import com.mdc.mcat.engine.session.impl.SessionManagerImpl;
 import com.mdc.mcat.utils.AnnoUtils;
+import com.mdc.mcat.utils.ClassUtils;
+import com.mdc.mcat.utils.StringUtils;
 import jakarta.servlet.*;
 import jakarta.servlet.annotation.WebFilter;
 import jakarta.servlet.annotation.WebServlet;
 import jakarta.servlet.descriptor.JspConfigDescriptor;
+import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
+import jakarta.servlet.http.HttpSession;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -21,7 +29,8 @@ import java.lang.reflect.InvocationTargetException;
 import java.net.MalformedURLException;
 import java.net.URL;
 import java.util.*;
-import java.util.stream.Collectors;
+
+import static com.mdc.mcat.engine.entity.request.HttpServletRequestImpl.JSESSIONID_NAME;
 
 public class ServletContextImpl implements ServletContext {
     private final static Servlet DEFAULT_SERVLET = new DefaultServlet();
@@ -30,7 +39,6 @@ public class ServletContextImpl implements ServletContext {
 
         @Override
         public void init(ServletConfig config) throws ServletException {
-
         }
 
         @Override
@@ -85,6 +93,7 @@ public class ServletContextImpl implements ServletContext {
     private Servlet defaultServlet = DEFAULT_SERVLET;
     private boolean isInitialized = false;
     private Map<String, Object> contextParams = new HashMap<>();
+    private AbstractSessionManager sessionManager = new SessionManagerImpl(this);
 
     public ServletContextImpl(String contextPath) {
         this.contextPath = contextPath;
@@ -102,7 +111,11 @@ public class ServletContextImpl implements ServletContext {
                 }
                 WebServlet webServlet = clazz.getAnnotation(WebServlet.class);
                 var servletRegistration = (ServletRegistrationImpl) addServlet(webServlet.name(), (Class<? extends Servlet>) clazz);
-                servletRegistrationMap.put(webServlet.name(), servletRegistration);
+                String servletName = webServlet.name();
+                if (StringUtils.isEmpty(servletName)) {
+                    servletName = ClassUtils.getSimpleClassName(clazz);
+                }
+                servletRegistrationMap.put(servletName, servletRegistration);
                 var initParams = AnnoUtils.getInitParams(clazz.getAnnotation(WebServlet.class));
                 servletRegistration.setInitParameters(initParams);
             } else if (clazz.isAnnotationPresent(WebFilter.class)) {
@@ -111,7 +124,11 @@ public class ServletContextImpl implements ServletContext {
                 }
                 WebFilter webFilter = clazz.getAnnotation(WebFilter.class);
                 var filterRegistraion = (FilterRegistrationImpl) addFilter(webFilter.filterName(), (Class<? extends Filter>) clazz);
-                filterRegistrationMap.put(filterRegistraion.getName(), filterRegistraion);
+                String filterName = webFilter.filterName();
+                if (StringUtils.isEmpty(filterName)) {
+                    filterName = ClassUtils.getSimpleClassName(clazz);
+                }
+                filterRegistrationMap.put(filterName, filterRegistraion);
                 var initParams = AnnoUtils.getInitParams(clazz.getAnnotation(WebFilter.class));
                 filterRegistraion.setInitParameters(initParams);
             }
@@ -169,8 +186,6 @@ public class ServletContextImpl implements ServletContext {
         if (matchServlet == null) {
             FilterChain filterChain = buildFilterChain(defaultServlet, collectFilters(defaultServlet.getServletConfig(), uri));
             filterChain.doFilter(req, resp);
-        } else {
-            matchServlet.service(req, resp);
         }
     }
 
@@ -181,13 +196,14 @@ public class ServletContextImpl implements ServletContext {
     }
 
     private List<Filter> collectFilters(ServletConfig servletConfig, String uri) {
-        return this.filterMappingList.stream().filter(
+        var result = this.filterMappingList.stream().filter(
                 f -> {
                     return f.match(uri) || f.getIsDefault();
                 }
         ).filter(
                 f -> f.matchServlet(servletConfig.getServletName())
         ).map(FilterMapping::getFilter).toList();
+        return result;
     }
 
     @Override
@@ -515,5 +531,9 @@ public class ServletContextImpl implements ServletContext {
     @Override
     public void setResponseCharacterEncoding(String encoding) {
 
+    }
+
+    public AbstractSessionManager getSessionManager() {
+        return this.sessionManager;
     }
 }

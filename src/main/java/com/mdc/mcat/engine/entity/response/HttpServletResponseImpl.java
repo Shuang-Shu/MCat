@@ -4,24 +4,32 @@ import com.mdc.mcat.adapter.HttpExchangeResponse;
 import jakarta.servlet.ServletOutputStream;
 import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletResponse;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.io.PrintWriter;
 import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.Locale;
 
 public class HttpServletResponseImpl implements HttpServletResponse {
-    private HttpExchangeResponse exchangeResponse;
+    private static final Logger logger = LoggerFactory.getLogger(HttpServletResponseImpl.class);
+    private final HttpExchangeResponse exchangeResponse;
 
     public HttpServletResponseImpl(HttpExchangeResponse resp) {
         this.exchangeResponse = resp;
     }
 
+    public void close() throws IOException {
+        this.exchangeResponse.getResponseBody().close();
+    }
+
     @Override
     public void addCookie(Cookie cookie) {
-
+        exchangeResponse.addCookie(cookie);
     }
 
     @Override
@@ -128,8 +136,13 @@ public class HttpServletResponseImpl implements HttpServletResponse {
     }
 
     @Override
-    public PrintWriter getWriter() throws IOException {
-        exchangeResponse.sendResponseHeaders(200, 0);
+    public PrintWriter getWriter() {
+        try {
+            exchangeResponse.sendResponseHeaders(200, 0);
+        } catch (IOException e) {
+            logger.error(e.getMessage());
+            logger.error(Arrays.toString(e.getStackTrace()));
+        }
         return new PrintWriter(exchangeResponse.getResponseBody(), true, StandardCharsets.UTF_8);
     }
 

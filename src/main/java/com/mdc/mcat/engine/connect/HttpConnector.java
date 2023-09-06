@@ -77,8 +77,8 @@ public class HttpConnector implements HttpHandler, AutoCloseable {
     @Override
     public void handle(HttpExchange httpExchange) throws IOException {
         var adapter = new HttpExchangeAdapter(httpExchange);
-        var request = new HttpServletRequestImpl(adapter);
         var response = new HttpServletResponseImpl(adapter);
+        var request = new HttpServletRequestImpl(adapter, response, this.servletContext);
         process(request, response);
     }
 

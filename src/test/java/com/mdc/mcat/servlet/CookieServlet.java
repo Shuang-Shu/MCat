@@ -2,17 +2,15 @@ package com.mdc.mcat.servlet;
 
 import jakarta.servlet.*;
 import jakarta.servlet.annotation.WebServlet;
-import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletResponse;
 
 import java.io.IOException;
-import java.io.PrintWriter;
 
 @WebServlet(
-        value = "/index",
-        name = "indexServlet"
+        value = "/cookie"
 )
-public class IndexServlet implements Servlet {
+public class CookieServlet implements Servlet {
     private ServletConfig config;
 
     @Override
@@ -26,14 +24,11 @@ public class IndexServlet implements Servlet {
     }
 
     @Override
-    public void service(ServletRequest req, ServletResponse res) throws IOException {
-        var session = ((HttpServletRequest) req).getSession();
-        if (session == null || session.getAttribute("name") == null) {
-            ((HttpServletResponse) res).sendError(403, "403, Access Forbidden");
-            return;
-        }
-        PrintWriter pw = res.getWriter();
-        pw.write("<h1>Index</h1>");
+    public void service(ServletRequest req, ServletResponse res) throws ServletException, IOException {
+        ((HttpServletResponse) res).addCookie(new Cookie("JSESSIONID", "test"));
+        ((HttpServletResponse) res).addCookie(new Cookie("test2", "test2"));
+        var pw = res.getWriter();
+        pw.write("OK");
         pw.flush();
         pw.close();
     }

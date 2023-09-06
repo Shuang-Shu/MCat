@@ -6,36 +6,35 @@ import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 
 import java.io.IOException;
-import java.io.PrintWriter;
+import java.util.Map;
 
 @WebServlet(
-        value = "/index",
-        name = "indexServlet"
+        value = "/login"
 )
-public class IndexServlet implements Servlet {
-    private ServletConfig config;
+public class LoginServlet implements Servlet {
+    Map<String, String> passwdMap = Map.of("lihua", "123", "ss", "1234");
+    private ServletConfig servletConfig;
 
     @Override
     public void init(ServletConfig config) throws ServletException {
-        this.config = config;
+        this.servletConfig = config;
     }
 
     @Override
     public ServletConfig getServletConfig() {
-        return config;
+        return this.servletConfig;
     }
 
     @Override
     public void service(ServletRequest req, ServletResponse res) throws IOException {
-        var session = ((HttpServletRequest) req).getSession();
-        if (session == null || session.getAttribute("name") == null) {
+        String name = req.getParameter("name"), password = req.getParameter("passwd");
+        if (passwdMap.get(name).equals(password)) {
+            var session = ((HttpServletRequest) req).getSession(true);
+            session.setAttribute("name", name);
+        } else {
             ((HttpServletResponse) res).sendError(403, "403, Access Forbidden");
-            return;
         }
-        PrintWriter pw = res.getWriter();
-        pw.write("<h1>Index</h1>");
-        pw.flush();
-        pw.close();
+        res.getWriter().close();
     }
 
     @Override

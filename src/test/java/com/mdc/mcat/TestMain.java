@@ -1,11 +1,9 @@
 package com.mdc.mcat;
 
 import com.mdc.mcat.engine.connect.HttpConnector;
-import com.mdc.mcat.engine.filter.impl.EncodingFilter;
 import com.mdc.mcat.filter.HelloFilter;
 import com.mdc.mcat.filter.LogFilter;
-import com.mdc.mcat.servlet.HelloServlet;
-import com.mdc.mcat.servlet.IndexServlet;
+import com.mdc.mcat.servlet.*;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.annotation.WebServlet;
 
@@ -20,9 +18,11 @@ public class TestMain {
                 List.of(
                         HelloServlet.class,
                         IndexServlet.class,
-                        HelloFilter.class,
-                        LogFilter.class,
-                        EncodingFilter.class
+                        CookieServlet.class,
+                        LoginServlet.class,
+                        LogoutServlet.class,
+//                        HelloFilter.class,
+                        LogFilter.class
                 )
         );
         httpConnector.start();

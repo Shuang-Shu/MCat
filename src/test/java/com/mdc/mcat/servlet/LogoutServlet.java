@@ -1,18 +1,16 @@
 package com.mdc.mcat.servlet;
 
+import com.mdc.mcat.engine.context.ServletContextImpl;
 import jakarta.servlet.*;
 import jakarta.servlet.annotation.WebServlet;
 import jakarta.servlet.http.HttpServletRequest;
-import jakarta.servlet.http.HttpServletResponse;
 
 import java.io.IOException;
-import java.io.PrintWriter;
 
 @WebServlet(
-        value = "/index",
-        name = "indexServlet"
+        value = "/logout"
 )
-public class IndexServlet implements Servlet {
+public class LogoutServlet implements Servlet {
     private ServletConfig config;
 
     @Override
@@ -26,16 +24,12 @@ public class IndexServlet implements Servlet {
     }
 
     @Override
-    public void service(ServletRequest req, ServletResponse res) throws IOException {
+    public void service(ServletRequest req, ServletResponse res) throws ServletException, IOException {
         var session = ((HttpServletRequest) req).getSession();
-        if (session == null || session.getAttribute("name") == null) {
-            ((HttpServletResponse) res).sendError(403, "403, Access Forbidden");
-            return;
+        if (session != null) {
+            ((ServletContextImpl) req.getServletContext()).getSessionManager().remove(session.getId());
         }
-        PrintWriter pw = res.getWriter();
-        pw.write("<h1>Index</h1>");
-        pw.flush();
-        pw.close();
+        res.getWriter().close();
     }
 
     @Override
