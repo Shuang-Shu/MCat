@@ -18,6 +18,7 @@ public class HttpServletRequestImpl implements HttpServletRequest {
     private HttpExchangeRequest exchangeRequest;
 
     private Map<String, String> paramMap;
+    private Map<String, Object> attributeMap = new HashMap<>();
 
     private ServletContextImpl servletContext;
     private HttpServletResponse httpServletResponse;
@@ -142,6 +143,7 @@ public class HttpServletRequestImpl implements HttpServletRequest {
             if (create) {
                 var sessionId = servletContext.getSessionManager().createSession();
                 session = servletContext.getSessionManager().getSession(sessionId);
+                this.servletContext.getListenerWrapper().invokeSessionCreated(session);
                 httpServletResponse.addCookie(new Cookie(JSESSIONID_NAME, sessionId));
                 return session;
             } else {
@@ -321,12 +323,17 @@ public class HttpServletRequestImpl implements HttpServletRequest {
 
     @Override
     public void setAttribute(String name, Object o) {
-
+        if (attributeMap.put(name, o) == null) {
+            this.servletContext.getListenerWrapper().invokeAttributeAdded(new ServletRequestAttributeEvent(this.servletContext, this, name, o));
+        } else {
+            this.servletContext.getListenerWrapper().invokeAttributeReplaced(new ServletRequestAttributeEvent(this.servletContext, this, name, o));
+        }
     }
 
     @Override
     public void removeAttribute(String name) {
-
+        this.servletContext.getListenerWrapper().invokeAttributeRemoved(new ServletRequestAttributeEvent(this.servletContext, this, name, attributeMap.get(name)));
+        attributeMap.remove(name);
     }
 
     @Override

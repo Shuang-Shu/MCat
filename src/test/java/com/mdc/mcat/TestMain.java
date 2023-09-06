@@ -3,6 +3,7 @@ package com.mdc.mcat;
 import com.mdc.mcat.engine.connect.HttpConnector;
 import com.mdc.mcat.filter.HelloFilter;
 import com.mdc.mcat.filter.LogFilter;
+import com.mdc.mcat.listener.HelloHttpSessionAttributeListener;
 import com.mdc.mcat.servlet.*;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.annotation.WebServlet;
@@ -21,6 +22,7 @@ public class TestMain {
                         CookieServlet.class,
                         LoginServlet.class,
                         LogoutServlet.class,
+                        HelloHttpSessionAttributeListener.class,
 //                        HelloFilter.class,
                         LogFilter.class
                 )

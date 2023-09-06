@@ -4,6 +4,7 @@ import com.mdc.mcat.engine.entity.request.HttpServletRequestImpl;
 import com.mdc.mcat.engine.entity.response.HttpServletResponseImpl;
 import com.mdc.mcat.engine.filter.http.FilterRegistrationImpl;
 import com.mdc.mcat.engine.filter.http.impl.ListHttpFilterChain;
+import com.mdc.mcat.engine.listener.ListenerWrapper;
 import com.mdc.mcat.engine.mapping.impl.FilterMapping;
 import com.mdc.mcat.engine.mapping.impl.ServletMapping;
 import com.mdc.mcat.engine.session.AbstractSessionManager;
@@ -13,6 +14,7 @@ import com.mdc.mcat.utils.ClassUtils;
 import com.mdc.mcat.utils.StringUtils;
 import jakarta.servlet.*;
 import jakarta.servlet.annotation.WebFilter;
+import jakarta.servlet.annotation.WebListener;
 import jakarta.servlet.annotation.WebServlet;
 import jakarta.servlet.descriptor.JspConfigDescriptor;
 import jakarta.servlet.http.Cookie;
@@ -83,6 +85,7 @@ public class ServletContextImpl implements ServletContext {
     }
 
     private final static Logger logger = LoggerFactory.getLogger(ServletContextImpl.class);
+    private final ListenerWrapper listenerWrapper = new ListenerWrapper(this);
     private final Map<String, ServletRegistration.Dynamic> servletRegistrationMap = new HashMap<>();
     private final Map<String, FilterRegistration.Dynamic> filterRegistrationMap = new HashMap<>();
     private final Map<String, Servlet> nameToServletMap = new HashMap<>();
@@ -99,6 +102,7 @@ public class ServletContextImpl implements ServletContext {
         this.contextPath = contextPath;
     }
 
+    @SuppressWarnings("unchecked")
     public void initialize(List<Class<?>> annotationedClasses) throws ServletException {
         if (isInitialized) {
             throw new IllegalStateException("this servlet context has been initialized");
@@ -131,6 +135,11 @@ public class ServletContextImpl implements ServletContext {
                 filterRegistrationMap.put(filterName, filterRegistraion);
                 var initParams = AnnoUtils.getInitParams(clazz.getAnnotation(WebFilter.class));
                 filterRegistraion.setInitParameters(initParams);
+            } else if (clazz.isAnnotationPresent(WebListener.class)) {
+                if (!EventListener.class.isAssignableFrom(clazz)) {
+                    throw new ServletException("@WebListener should be on EventListener class");
+                }
+                addListener((Class<? extends EventListener>) clazz);
             }
         }
         // 2 使用ServletConfig配置所有Servlet
@@ -166,6 +175,7 @@ public class ServletContextImpl implements ServletContext {
             }
         }
         this.isInitialized = true;
+        listenerWrapper.invokeContextInitialized();
     }
 
     public void process(HttpServletRequest req, HttpServletResponse resp) throws IOException, ServletException {
@@ -313,11 +323,16 @@ public class ServletContextImpl implements ServletContext {
 
     @Override
     public void setAttribute(String name, Object object) {
-        contextParams.put(name, (String) object);
+        if (contextParams.put(name, (String) object) == null) {
+            listenerWrapper.invokeAttributeAdded(new ServletContextAttributeEvent(this, name, object));
+        } else {
+            listenerWrapper.invokeAttributeReplaced(new ServletContextAttributeEvent(this, name, object));
+        }
     }
 
     @Override
     public void removeAttribute(String name) {
+        listenerWrapper.invokeAttributeRemoved(new ServletContextAttributeEvent(this, name, contextParams.get(name)));
         contextParams.remove(name);
     }
 
@@ -464,18 +479,33 @@ public class ServletContextImpl implements ServletContext {
     }
 
     @Override
+    @SuppressWarnings("unchecked")
     public void addListener(String className) {
-
+        try {
+            Class<? extends EventListener> clazz = (Class<? extends EventListener>) Class.forName(className);
+            addListener(clazz);
+        } catch (ClassNotFoundException e) {
+            logger.error(e.getMessage());
+        }
     }
 
     @Override
     public <T extends EventListener> void addListener(T t) {
-
+        this.listenerWrapper.addListener(t);
     }
 
     @Override
+    @SuppressWarnings("unchecked")
     public void addListener(Class<? extends EventListener> listenerClass) {
-
+        EventListener listener = null;
+        try {
+            Constructor<EventListener> constructor = (Constructor<EventListener>) listenerClass.getConstructor();
+            listener = constructor.newInstance();
+        } catch (NoSuchMethodException | InvocationTargetException | InstantiationException |
+                 IllegalAccessException e) {
+            throw new RuntimeException(e);
+        }
+        addListener(listener);
     }
 
     @Override
@@ -535,5 +565,13 @@ public class ServletContextImpl implements ServletContext {
 
     public AbstractSessionManager getSessionManager() {
         return this.sessionManager;
+    }
+
+    public ListenerWrapper getListenerWrapper() {
+        return this.listenerWrapper;
+    }
+
+    public void destroy() {
+        this.listenerWrapper.invokeContextDestroyed();
     }
 }

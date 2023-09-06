@@ -79,12 +79,14 @@ public class HttpConnector implements HttpHandler, AutoCloseable {
         var adapter = new HttpExchangeAdapter(httpExchange);
         var response = new HttpServletResponseImpl(adapter);
         var request = new HttpServletRequestImpl(adapter, response, this.servletContext);
+        servletContext.getListenerWrapper().invokeRequestInitialized(request);
         process(request, response);
     }
 
     void process(HttpServletRequest request, HttpServletResponse response) throws IOException {
         try {
             servletContext.process(request, response);
+            servletContext.getListenerWrapper().invokeRequestDestroyed(request);
         } catch (ServletException e) {
             logger.error(e.getMessage());
             PrintWriter pw = new PrintWriter(response.getOutputStream(), true);

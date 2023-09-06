@@ -1,8 +1,10 @@
 package com.mdc.mcat.engine.session.impl;
 
 import com.mdc.mcat.engine.context.ServletContextImpl;
+import com.mdc.mcat.engine.entity.request.HttpServletRequestImpl;
 import jakarta.servlet.ServletContext;
 import jakarta.servlet.http.HttpSession;
+import jakarta.servlet.http.HttpSessionBindingEvent;
 
 import java.util.Collections;
 import java.util.Enumeration;
@@ -73,17 +75,23 @@ public class HttpSessionImpl implements HttpSession {
 
     @Override
     public void setAttribute(String name, Object value) {
-        attributes.put(name, value);
+        if (attributes.put(name, value) == null) {
+            ((ServletContextImpl) servletContext).getListenerWrapper().invokeAttributeAdded(new HttpSessionBindingEvent(this, name, value));
+        } else {
+            ((ServletContextImpl) servletContext).getListenerWrapper().invokeAttributeReplaced(new HttpSessionBindingEvent(this, name, value));
+        }
     }
 
     @Override
     public void removeAttribute(String name) {
+        ((ServletContextImpl) servletContext).getListenerWrapper().invokeAttributeRemoved(new HttpSessionBindingEvent(this, name, attributes.get(name)));
         attributes.remove(name);
     }
 
     @Override
     public void invalidate() {
         ((ServletContextImpl) this.servletContext).getSessionManager().remove(id);
+        ((ServletContextImpl) this.servletContext).getListenerWrapper().invokeSessionDestroyed(this);
         attributes.clear();
     }
 

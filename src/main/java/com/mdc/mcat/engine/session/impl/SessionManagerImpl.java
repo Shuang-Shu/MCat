@@ -1,5 +1,6 @@
 package com.mdc.mcat.engine.session.impl;
 
+import com.mdc.mcat.engine.context.ServletContextImpl;
 import com.mdc.mcat.engine.session.AbstractSessionManager;
 import jakarta.servlet.ServletContext;
 import jakarta.servlet.http.HttpSession;
@@ -66,6 +67,6 @@ public class SessionManagerImpl implements AbstractSessionManager {
 
     @Override
     public void remove(String id) {
-        sessionMap.remove(id);
+        ((ServletContextImpl) servletContext).getListenerWrapper().invokeSessionDestroyed(sessionMap.remove(id));
     }
 }
