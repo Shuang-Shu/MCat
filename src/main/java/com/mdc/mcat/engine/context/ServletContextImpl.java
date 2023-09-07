@@ -111,7 +111,7 @@ public class ServletContextImpl implements ServletContext {
         for (var clazz : annotationedClasses) {
             if (clazz.isAnnotationPresent(WebServlet.class)) {
                 if (!Servlet.class.isAssignableFrom(clazz)) {
-                    throw new ServletException("@WebServlet should be on Servlet class");
+                    throw new ServletException("Declared servlet's class: " + clazz.getName() + " should be sub-class of Servlet");
                 }
                 WebServlet webServlet = clazz.getAnnotation(WebServlet.class);
                 var servletRegistration = (ServletRegistrationImpl) addServlet(webServlet.name(), (Class<? extends Servlet>) clazz);
@@ -124,7 +124,7 @@ public class ServletContextImpl implements ServletContext {
                 servletRegistration.setInitParameters(initParams);
             } else if (clazz.isAnnotationPresent(WebFilter.class)) {
                 if (!Filter.class.isAssignableFrom(clazz)) {
-                    throw new ServletException("@WebFilter should be on Filter class");
+                    throw new ServletException("Declared filter's class: " + clazz.getName() + " should be sub-class of Filter");
                 }
                 WebFilter webFilter = clazz.getAnnotation(WebFilter.class);
                 var filterRegistraion = (FilterRegistrationImpl) addFilter(webFilter.filterName(), (Class<? extends Filter>) clazz);
@@ -137,7 +137,7 @@ public class ServletContextImpl implements ServletContext {
                 filterRegistraion.setInitParameters(initParams);
             } else if (clazz.isAnnotationPresent(WebListener.class)) {
                 if (!EventListener.class.isAssignableFrom(clazz)) {
-                    throw new ServletException("@WebListener should be on EventListener class");
+                    throw new ServletException("Declared listener's class: " + clazz.getName() + " should be sub-class of EventListener");
                 }
                 addListener((Class<? extends EventListener>) clazz);
             }
