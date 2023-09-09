@@ -1,4 +1,4 @@
-package com.mdc.mcat.adapter;
+package com.mdc.mcat.adapter.httpexchange;
 
 import com.sun.net.httpserver.Headers;
 import jakarta.servlet.http.Cookie;

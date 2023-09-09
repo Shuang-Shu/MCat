@@ -1,6 +1,6 @@
 package com.mdc.mcat.engine.entity.request;
 
-import com.mdc.mcat.adapter.HttpExchangeRequest;
+import com.mdc.mcat.adapter.httpexchange.HttpExchangeRequest;
 import com.mdc.mcat.engine.context.ServletContextImpl;
 import com.mdc.mcat.engine.session.impl.HttpSessionImpl;
 import jakarta.servlet.*;

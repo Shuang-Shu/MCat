@@ -8,4 +8,6 @@ public interface AbstractSessionManager {
     String createSession();
 
     void remove(String id);
+
+    void mergeWith(AbstractSessionManager manager);
 }

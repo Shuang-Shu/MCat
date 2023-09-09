@@ -1,6 +1,8 @@
 package com.mdc.mcat;
 
+import com.mdc.mcat.engine.config.Configuration;
 import com.mdc.mcat.engine.connect.HttpConnector;
+import com.mdc.mcat.engine.context.ServletContextImpl;
 import com.mdc.mcat.filter.HelloFilter;
 import com.mdc.mcat.filter.LogFilter;
 import com.mdc.mcat.listener.HelloHttpSessionAttributeListener;
@@ -14,19 +16,19 @@ import java.util.List;
 
 public class TestMain {
     public static void main(String[] args) throws IOException, ServletException {
-        HttpConnector httpConnector = new HttpConnector("0.0.0.0", 8080);
-        httpConnector.initialize(
-                List.of(
-                        HelloServlet.class,
-                        IndexServlet.class,
-                        CookieServlet.class,
-                        LoginServlet.class,
-                        LogoutServlet.class,
-                        HelloHttpSessionAttributeListener.class,
-//                        HelloFilter.class,
-                        LogFilter.class
-                )
-        );
+        HttpConnector httpConnector = new HttpConnector();
+//        httpConnector.initialize(
+//                List.of(
+//                        HelloServlet.class,
+//                        IndexServlet.class,
+//                        CookieServlet.class,
+//                        LoginServlet.class,
+//                        LogoutServlet.class,
+//                        HelloHttpSessionAttributeListener.class,
+////                        HelloFilter.class,
+//                        LogFilter.class
+//                )
+//        );
         httpConnector.start();
     }
 }

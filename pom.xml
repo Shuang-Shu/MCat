@@ -17,6 +17,7 @@
         <lombok.version>1.18.24</lombok.version>
         <log4j2.version>2.9.1</log4j2.version>
         <slf4j.version>1.7.25</slf4j.version>
+        <snakeyaml.version>2.0</snakeyaml.version>
     </properties>
 
     <dependencies>
@@ -61,6 +62,13 @@
             <groupId>org.apache.logging.log4j</groupId>
             <artifactId>log4j-core</artifactId>
             <version>${log4j2.version}</version>
+        </dependency>
+
+        <!--    yaml parsing    -->
+        <dependency>
+            <groupId>org.yaml</groupId>
+            <artifactId>snakeyaml</artifactId>
+            <version>${snakeyaml.version}</version>
         </dependency>
     </dependencies>
 

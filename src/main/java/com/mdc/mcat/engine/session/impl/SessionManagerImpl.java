@@ -14,7 +14,8 @@ import java.util.concurrent.ConcurrentHashMap;
 
 public class SessionManagerImpl implements AbstractSessionManager {
     private final Map<String, HttpSession> sessionMap = new ConcurrentHashMap<>();
-    private final ServletContext servletContext;
+    private ServletContext servletContext;
+    private boolean contextSet = false;
 
     private class ClearExpiredRunnable implements Runnable {
         static final int SLEEP_TIME_MS = 1000;
@@ -42,19 +43,28 @@ public class SessionManagerImpl implements AbstractSessionManager {
         }
     }
 
-    public SessionManagerImpl(ServletContext servletContext) {
-        this.servletContext = servletContext;
+    public SessionManagerImpl() {
         Thread clearThread = new Thread(new ClearExpiredRunnable());
         clearThread.start();
     }
 
+    public void setContext(ServletContext context) {
+        this.servletContext = context;
+    }
+
     @Override
     public HttpSession getSession(String id) {
+        if (!contextSet) {
+            throw new IllegalStateException("Context of SessionManager has not set yet");
+        }
         return sessionMap.get(id);
     }
 
     @Override
     public String createSession() {
+        if (!contextSet) {
+            throw new IllegalStateException("Context of SessionManager has not set yet");
+        }
         String sid = generateSessionId();
         var session = new HttpSessionImpl(sid, servletContext);
         sessionMap.put(sid, session);
@@ -67,6 +77,16 @@ public class SessionManagerImpl implements AbstractSessionManager {
 
     @Override
     public void remove(String id) {
+        if (!contextSet) {
+            throw new IllegalStateException("Context of SessionManager has not set yet");
+        }
         ((ServletContextImpl) servletContext).getListenerWrapper().invokeSessionDestroyed(sessionMap.remove(id));
+    }
+
+    @Override
+    public void mergeWith(AbstractSessionManager other) {
+        if (other instanceof SessionManagerImpl) {
+            sessionMap.putAll(((SessionManagerImpl) other).sessionMap);
+        }
     }
 }

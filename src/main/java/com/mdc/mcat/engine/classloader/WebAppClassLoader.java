@@ -5,6 +5,7 @@ import java.net.MalformedURLException;
 import java.net.URISyntaxException;
 import java.net.URL;
 import java.net.URLClassLoader;
+import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -25,10 +26,11 @@ public class WebAppClassLoader extends URLClassLoader {
                     List<URL> jarUrls = new ArrayList<>();
                     try {
                         File f = new File(url.toURI());
+                        Path path = Path.of(f.toURI());
                         jarUrls.addAll(
                                 Arrays.stream(f.list())
                                         .filter(name -> name.endsWith(".jar"))
-                                        .map(File::new)
+                                        .map(n -> path.resolve(n).toFile())
                                         .map(ff -> {
                                             try {
                                                 return ff.toURI().toURL();

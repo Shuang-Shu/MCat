@@ -17,9 +17,9 @@ public class ListenerWrapper {
     private List<HttpSessionAttributeListener> httpSessionAttributeListeners = new ArrayList<>();
     private List<ServletRequestAttributeListener> servletRequestAttributeListeners = new ArrayList<>();
 
-    private final ServletContext servletContext;
+    private ServletContext servletContext;
 
-    public ListenerWrapper(ServletContext servletContext) {
+    public void setContext(ServletContext servletContext) {
         this.servletContext = servletContext;
     }
 
@@ -40,7 +40,9 @@ public class ListenerWrapper {
     }
 
     public void invokeContextInitialized() {
-        servletContextListeners.forEach(t -> t.contextInitialized(new ServletContextEvent(servletContext)));
+        servletContextListeners.forEach(
+                t -> t.contextInitialized(new ServletContextEvent(servletContext))
+        );
     }
 
     public void invokeContextDestroyed() {
@@ -97,5 +99,14 @@ public class ListenerWrapper {
 
     public void invokeAttributeRemoved(ServletRequestAttributeEvent srae) {
         servletRequestAttributeListeners.forEach(t -> t.attributeRemoved(srae));
+    }
+
+    public void mergeWith(ListenerWrapper listenerWrapper) {
+        servletContextListeners.addAll(listenerWrapper.servletContextListeners);
+        httpSessionListeners.addAll(listenerWrapper.httpSessionListeners);
+        servletRequestListeners.addAll(listenerWrapper.servletRequestListeners);
+        servletContextAttributeListeners.addAll(listenerWrapper.servletContextAttributeListeners);
+        httpSessionAttributeListeners.addAll(listenerWrapper.httpSessionAttributeListeners);
+        servletRequestAttributeListeners.addAll(listenerWrapper.servletRequestAttributeListeners);
     }
 }

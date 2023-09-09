@@ -1,5 +1,6 @@
 package com.mdc.mcat.engine.context;
 
+import com.mdc.mcat.engine.config.Configuration;
 import com.mdc.mcat.engine.mapping.impl.ServletMapping;
 import jakarta.servlet.*;
 import lombok.Builder;
@@ -11,7 +12,7 @@ import java.util.*;
 @Builder
 public class ServletRegistrationImpl implements ServletRegistration.Dynamic {
     private String name;
-    private ServletContext context;
+    private Configuration configuration;
     private Class<? extends Servlet> servletClass;
     private ServletMapping servletMapping;
     private int loadOnStartup;
@@ -110,7 +111,7 @@ public class ServletRegistrationImpl implements ServletRegistration.Dynamic {
 
             @Override
             public ServletContext getServletContext() {
-                return ServletRegistrationImpl.this.context;
+                return ServletRegistrationImpl.this.configuration.getServletContext();
             }
 
             @Override

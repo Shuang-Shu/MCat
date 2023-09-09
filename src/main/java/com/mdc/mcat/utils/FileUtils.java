@@ -4,7 +4,6 @@ import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.util.Comparator;
 import java.util.List;
 import java.util.jar.JarEntry;
@@ -20,7 +19,7 @@ public class FileUtils {
         }
     }
 
-    public static void unzipJars(File file, Path baseDir) throws IOException {
+    public static void unzipJar(File file, Path baseDir) throws IOException {
         JarFile jarFile = new JarFile(file);
         List<JarEntry> jarEntries = jarFile.stream().toList();
         for (JarEntry jarEntry : jarEntries) {
@@ -32,5 +31,9 @@ public class FileUtils {
                 Files.copy(is, dest);
             }
         }
+    }
+
+    public static File loadResource(String path) {
+        return new File(FileUtils.class.getClassLoader().getResource(path).getFile());
     }
 }

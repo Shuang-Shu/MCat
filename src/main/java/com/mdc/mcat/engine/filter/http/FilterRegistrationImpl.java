@@ -1,5 +1,6 @@
 package com.mdc.mcat.engine.filter.http;
 
+import com.mdc.mcat.engine.config.Configuration;
 import com.mdc.mcat.engine.mapping.impl.FilterMapping;
 import jakarta.servlet.*;
 import lombok.Builder;
@@ -11,7 +12,7 @@ import java.util.*;
 @Builder
 public class FilterRegistrationImpl implements FilterRegistration.Dynamic {
     private String name;
-    private ServletContext context;
+    private Configuration configuration;
     private Class<? extends Filter> filterClass;
     private FilterMapping filterMapping;
     private final Map<String, String> filterParams = new HashMap<>();
@@ -80,7 +81,7 @@ public class FilterRegistrationImpl implements FilterRegistration.Dynamic {
 
             @Override
             public ServletContext getServletContext() {
-                return FilterRegistrationImpl.this.context;
+                return FilterRegistrationImpl.this.configuration.getServletContext();
             }
 
             @Override
