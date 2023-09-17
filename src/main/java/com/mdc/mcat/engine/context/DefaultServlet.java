@@ -1,6 +1,7 @@
 package com.mdc.mcat.engine.context;
 
 import jakarta.servlet.*;
+import jakarta.servlet.annotation.WebServlet;
 import jakarta.servlet.http.HttpServletResponse;
 
 import java.io.IOException;
@@ -12,6 +13,7 @@ import java.util.Enumeration;
  * @description: TODO
  * @date 2023/9/8 20:36
  */
+@WebServlet(name = "defaultServlet", urlPatterns = "/")
 public class DefaultServlet implements Servlet {
 
     @Override

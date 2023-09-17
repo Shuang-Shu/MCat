@@ -22,6 +22,11 @@ public class YamlConfigBuilder {
         if (yamlConfig == null) {
             throw new ServletException("web-app should be the root element of web.yaml");
         }
+        // parse all context parameters
+        var contextParams = (List<Map<String, String>>) yamlConfig.get("context-param");
+        for (var param : contextParams) {
+            diffConfig.getContextParams().put(param.get("param-name"), param.get("param-value"));
+        }
         List<String> yamlClassNames = new ArrayList<>();
         List<Map<String, String>> servlets = (List<Map<String, String>>) yamlConfig.get("servlets");
         if (servlets != null) {
@@ -38,7 +43,6 @@ public class YamlConfigBuilder {
             yamlClassNames.addAll(filters.
                     stream().map(e -> e.get("filter-class")).toList());
         }
-        diffConfig.setHost((String) yamlConfig.get("host"));
         List<Class<?>> classes = new ArrayList<>();
         for (String name : yamlClassNames) {
             classes.add(Class.forName(name, false, Thread.currentThread().getContextClassLoader()));

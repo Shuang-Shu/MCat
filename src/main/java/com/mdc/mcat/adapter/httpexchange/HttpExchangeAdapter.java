@@ -5,6 +5,7 @@ import com.sun.net.httpserver.HttpExchange;
 import jakarta.servlet.http.Cookie;
 
 import java.io.IOException;
+import java.io.InputStream;
 import java.io.OutputStream;
 import java.net.URI;
 import java.util.ArrayList;
@@ -46,6 +47,11 @@ public class HttpExchangeAdapter implements HttpExchangeRequest, HttpExchangeRes
                     );
                 }
         ).toList().toArray(new Cookie[0]);
+    }
+
+    @Override
+    public InputStream getRequestBody() {
+        return httpExchange.getRequestBody();
     }
 
     @Override

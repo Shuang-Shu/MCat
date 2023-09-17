@@ -64,6 +64,7 @@ public class HttpConnector implements HttpHandler, AutoCloseable {
         var request = new HttpServletRequestImpl(adapter, response, this.servletContext);
         servletContext.getListenerWrapper().invokeRequestInitialized(request);
         process(request, response);
+        response.cleanup(200);
     }
 
     void process(HttpServletRequest request, HttpServletResponse response) throws IOException {

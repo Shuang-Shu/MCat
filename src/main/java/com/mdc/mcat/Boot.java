@@ -4,7 +4,6 @@ import com.mdc.mcat.engine.builder.Impl.ClassLoaderBuilder;
 import com.mdc.mcat.engine.builder.Impl.WarConfigBuilder;
 import com.mdc.mcat.engine.builder.Impl.YamlConfigBuilder;
 import com.mdc.mcat.engine.builder.parse.WarParser;
-import com.mdc.mcat.engine.classloader.WebAppClassLoader;
 import com.mdc.mcat.engine.config.Configuration;
 import com.mdc.mcat.engine.connect.HttpConnector;
 import com.mdc.mcat.engine.context.ServletContextImpl;
@@ -54,7 +53,6 @@ public class Boot {
             HttpConnector connector = new HttpConnector((ServletContextImpl) servletContext);
             connector.getServletContext().getListenerWrapper().setContext(servletContext);
             connector.getServletContext().getListenerWrapper().invokeContextInitialized();
-//            connector.initialize(new URL[]{});
             connector.start();
         } finally {
             // 清空tmp目录

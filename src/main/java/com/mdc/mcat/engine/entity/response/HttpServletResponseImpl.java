@@ -2,6 +2,7 @@ package com.mdc.mcat.engine.entity.response;
 
 import com.mdc.mcat.adapter.httpexchange.HttpExchangeResponse;
 import jakarta.servlet.ServletOutputStream;
+import jakarta.servlet.WriteListener;
 import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletResponse;
 import org.slf4j.Logger;
@@ -17,6 +18,7 @@ import java.util.Locale;
 public class HttpServletResponseImpl implements HttpServletResponse {
     private static final Logger logger = LoggerFactory.getLogger(HttpServletResponseImpl.class);
     private final HttpExchangeResponse exchangeResponse;
+    private boolean hasSendHeader = false;
 
     public HttpServletResponseImpl(HttpExchangeResponse resp) {
         this.exchangeResponse = resp;
@@ -131,16 +133,37 @@ public class HttpServletResponseImpl implements HttpServletResponse {
 
     @Override
     public ServletOutputStream getOutputStream() throws IOException {
-        return null;
+        try {
+            exchangeResponse.sendResponseHeaders(200, 0);
+            hasSendHeader = true;
+        } catch (IOException e) {
+        }
+        var outputStream = exchangeResponse.getResponseBody();
+        return new ServletOutputStream() {
+            @Override
+            public boolean isReady() {
+                return outputStream != null;
+            }
+
+            @Override
+            public void setWriteListener(WriteListener writeListener) {
+
+            }
+
+            @Override
+            public void write(int b) throws IOException {
+                outputStream.write(b);
+            }
+        };
     }
 
     @Override
     public PrintWriter getWriter() {
         try {
             exchangeResponse.sendResponseHeaders(200, 0);
+            hasSendHeader = true;
         } catch (IOException e) {
-            logger.error(e.getMessage());
-            logger.error(Arrays.toString(e.getStackTrace()));
+            return null;
         }
         return new PrintWriter(exchangeResponse.getResponseBody(), true, StandardCharsets.UTF_8);
     }
@@ -206,5 +229,15 @@ public class HttpServletResponseImpl implements HttpServletResponse {
     @Override
     public Locale getLocale() {
         return null;
+    }
+
+    public void cleanup(int rCode) throws IOException {
+        if (!hasSendHeader) {
+            try {
+                exchangeResponse.sendResponseHeaders(rCode, 0);
+            } catch (IOException e) {
+            }
+        }
+        exchangeResponse.getResponseBody().close();
     }
 }

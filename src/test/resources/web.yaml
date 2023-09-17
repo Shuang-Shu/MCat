@@ -2,7 +2,10 @@ web-app:
   servlets:
   servlet-mappings:
   context-param:
-    param-name: "db.url"
-    param-value: "jdbc:mysql://localhost:3306/mydb"
+    - param-name: "db.url"
+      param-value: "jdbc:mysql://localhost:3306/mydb"
+
+    - param-name: "configuration"
+      param-value: "com.mdc.mcat.config.WebAppConfig"
   listeners:
-    - listener-class: com.mdc.mspring.webapp.listener.TestContextLoaderListener
+    - listener-class: com.mdc.mspring.mvc.listener.ContextLoaderListener

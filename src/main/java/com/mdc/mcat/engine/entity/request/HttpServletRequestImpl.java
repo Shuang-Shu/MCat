@@ -6,9 +6,7 @@ import com.mdc.mcat.engine.session.impl.HttpSessionImpl;
 import jakarta.servlet.*;
 import jakarta.servlet.http.*;
 
-import java.io.BufferedReader;
-import java.io.IOException;
-import java.io.UnsupportedEncodingException;
+import java.io.*;
 import java.security.Principal;
 import java.util.*;
 
@@ -244,7 +242,28 @@ public class HttpServletRequestImpl implements HttpServletRequest {
 
     @Override
     public ServletInputStream getInputStream() throws IOException {
-        return null;
+        var inputStream = exchangeRequest.getRequestBody();
+        return new ServletInputStream() {
+            @Override
+            public boolean isFinished() {
+                return false;
+            }
+
+            @Override
+            public boolean isReady() {
+                return inputStream != null;
+            }
+
+            @Override
+            public void setReadListener(ReadListener readListener) {
+
+            }
+
+            @Override
+            public int read() throws IOException {
+                return inputStream.read();
+            }
+        };
     }
 
     @Override
@@ -273,17 +292,24 @@ public class HttpServletRequestImpl implements HttpServletRequest {
 
     @Override
     public Enumeration<String> getParameterNames() {
-        return null;
+        if (paramMap == null) {
+            parseUri(exchangeRequest.getRequestURI().toString());
+        }
+        return Collections.enumeration(paramMap.keySet());
     }
 
     @Override
     public String[] getParameterValues(String name) {
-        return new String[0];
+        return paramMap.values().toArray(new String[0]);
     }
 
     @Override
     public Map<String, String[]> getParameterMap() {
-        return null;
+        Map<String, String[]> arrayValueMap = new HashMap<>();
+        for (var key : paramMap.keySet()) {
+            arrayValueMap.put(key, new String[]{paramMap.get(key)});
+        }
+        return arrayValueMap;
     }
 
     @Override
@@ -303,12 +329,12 @@ public class HttpServletRequestImpl implements HttpServletRequest {
 
     @Override
     public int getServerPort() {
-        return 0;
+        return servletContext.getConfiguration().getPort();
     }
 
     @Override
     public BufferedReader getReader() throws IOException {
-        return null;
+        return new BufferedReader(new InputStreamReader(exchangeRequest.getRequestBody(), "UTF-8"));
     }
 
     @Override
@@ -368,12 +394,12 @@ public class HttpServletRequestImpl implements HttpServletRequest {
 
     @Override
     public String getLocalAddr() {
-        return null;
+        return this.servletContext.getConfiguration().getHost();
     }
 
     @Override
     public int getLocalPort() {
-        return 0;
+        return this.servletContext.getConfiguration().getPort();
     }
 
     @Override

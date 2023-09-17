@@ -39,11 +39,13 @@ import java.util.*;
 public class Configuration {
     private static final Logger logger = LoggerFactory.getLogger(Configuration.class);
     public final static Servlet DEFAULT_SERVLET = new DefaultServlet();
+    private Servlet defaultServlet = DEFAULT_SERVLET;
 
     // defined in web.yaml
     private String contextPath = "/";
     private String host = "0.0.0.0";
     private int port = 8080;
+
     private ServletContextImpl servletContext = null;
     private ClassLoader classLoader = ClassLoader.getSystemClassLoader();
     private ListenerWrapper listenerWrapper = new ListenerWrapper();
@@ -69,9 +71,6 @@ public class Configuration {
         this.filterMappingList.addAll(configuration.filterMappingList);
         this.contextParams.putAll(configuration.contextParams);
         this.sessionManager.mergeWith(configuration.sessionManager);
-
-        this.contextParams = configuration.contextParams;
-        this.sessionManager = configuration.sessionManager;
         return this;
     }
 
@@ -197,7 +196,6 @@ public class Configuration {
     }
 
     public ServletRegistration.Dynamic addServlet(String servletName, Servlet servlet) {
-        var defaultServlet = DEFAULT_SERVLET;
         var webServlet = servlet.getClass().getAnnotation(WebServlet.class);
         var registration = ServletRegistrationImpl.builder().name(servletName).servletClass(servlet.getClass()).servletMapping(new ServletMapping(servlet, webServlet.value())).configuration(this).build();
         registration.getServletParams().putAll(
@@ -206,6 +204,7 @@ public class Configuration {
         if (registration.getServletMapping().getIsDefault()) {
             if (defaultServlet == DEFAULT_SERVLET) {
                 defaultServlet = registration.getServletMapping().getServlet();
+                return registration;
             } else {
                 throw new IllegalStateException("Only one default servlet can be used");
             }
